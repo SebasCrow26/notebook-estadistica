@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sección 12.3 — Prueba de Bondad de Ajuste</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e17;
+    --surface: #1a1929;
+    --surface2: #221f35;
+    --border: #2e2b46;
+    --accent: #e8c547;
+    --accent2: #ff6b6b;
+    --accent3: #6bcbff;
+    --accent4: #a8ff78;
+    --text: #e8e6f0;
+    --text-muted: #8b8aab;
+    --poisson: #6bcbff;
+    --normal: #ff6b6b;
+    --formula-bg: #141223;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ===== HEADER ===== */
+  .hero {
+    background: linear-gradient(135deg, #0f0e17 0%, #1a0f2e 50%, #0a1628 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 40px 50px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(232,197,71,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: 20%;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(107,203,255,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    opacity: 0.9;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 900;
+    line-height: 1.1;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero-sub {
+    font-size: 18px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 30px;
+    font-weight: 300;
+  }
+  .hero-pills { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .pill-blue { border-color: var(--poisson); color: var(--poisson); background: rgba(107,203,255,0.07); }
+  .pill-red  { border-color: var(--normal);  color: var(--normal);  background: rgba(255,107,107,0.07); }
+  .pill-gold { border-color: var(--accent);  color: var(--accent);  background: rgba(232,197,71,0.07); }
+
+  /* ===== LAYOUT ===== */
+  .container { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ===== NAVIGATION ===== */
+  .nav-bar {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 48px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .nav-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-btn.active { background: var(--accent); color: #0f0e17; border-color: var(--accent); font-weight: 600; }
+
+  /* ===== SECTIONS ===== */
+  .section { display: none; animation: fadeIn 0.3s ease; }
+  .section.visible { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ===== TYPOGRAPHY ===== */
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  h2 .tag-h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--accent);
+    margin: 32px 0 12px;
+  }
+  h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 24px 0 10px;
+  }
+  p { margin-bottom: 16px; color: var(--text); }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-poisson { border-left: 3px solid var(--poisson); }
+  .card-normal  { border-left: 3px solid var(--normal); }
+  .card-gold    { border-left: 3px solid var(--accent); }
+  .card-green   { border-left: 3px solid var(--accent4); }
+
+  /* ===== FORMULA BOX ===== */
+  .formula-box {
+    background: var(--formula-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 18px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    line-height: 2;
+    text-align: center;
+    color: var(--accent);
+    position: relative;
+  }
+  .formula-label {
+    position: absolute;
+    top: -10px; left: 16px;
+    background: var(--formula-bg);
+    border: 1px solid var(--border);
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .formula-box .var { color: var(--accent3); }
+  .formula-box .op  { color: var(--text-muted); }
+
+  /* ===== STEPS ===== */
+  .steps { list-style: none; counter-reset: step; margin: 18px 0; }
+  .steps li {
+    counter-increment: step;
+    display: flex; gap: 16px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
+  .steps li::before {
+    content: counter(step);
+    min-width: 32px; height: 32px;
+    background: var(--accent);
+    color: #0f0e17;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600; font-size: 13px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .steps li p { margin: 4px 0 0; }
+
+  /* ===== ALERT BOX ===== */
+  .alert {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    display: flex; gap: 14px; align-items: flex-start;
+    font-size: 15px;
+  }
+  .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .alert-warn { background: rgba(232,197,71,0.08); border: 1px solid rgba(232,197,71,0.3); }
+  .alert-info { background: rgba(107,203,255,0.08); border: 1px solid rgba(107,203,255,0.3); }
+  .alert-ok   { background: rgba(168,255,120,0.08); border: 1px solid rgba(168,255,120,0.3); }
+
+  /* ===== TABLE ===== */
+  .tbl-wrap { overflow-x: auto; margin: 18px 0; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead { background: var(--surface2); }
+  th {
+    padding: 12px 16px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 16px;
+    text-align: center;
+    border-bottom: 1px solid rgba(46,43,70,0.5);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .td-total { font-weight: 600; color: var(--accent); background: var(--surface2) !important; }
+  .td-hi { color: var(--accent4); font-weight: 600; }
+  .td-warn { color: var(--accent2); font-weight: 600; }
+
+  /* ===== COMPARACIÓN VISUAL ===== */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  @media (max-width: 600px) { .compare-grid { grid-template-columns: 1fr; } }
+  .compare-card {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
+  .compare-card h5 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .compare-card ul { list-style: none; font-size: 14px; }
+  .compare-card ul li { margin-bottom: 7px; padding-left: 18px; position: relative; }
+  .compare-card ul li::before { content: '→'; position: absolute; left: 0; color: var(--text-muted); }
+
+  /* ===== BADGE ===== */
+  .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+  .badge-blue { background: rgba(107,203,255,0.15); color: var(--poisson); border: 1px solid rgba(107,203,255,0.3); }
+  .badge-red  { background: rgba(255,107,107,0.15); color: var(--normal);  border: 1px solid rgba(255,107,107,0.3); }
+  .badge-gold { background: rgba(232,197,71,0.15);  color: var(--accent);  border: 1px solid rgba(232,197,71,0.3); }
+
+  /* ===== INTERACTIVE CALCULATOR ===== */
+  .calc-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    margin: 24px 0;
+  }
+  .calc-section h3 { margin-top: 0; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+  label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  input[type="text"], input[type="number"], textarea, select {
+    width: 100%;
+    background: var(--formula-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+  .btn {
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #0f0e17;
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: #f5d465; transform: translateY(-1px); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--accent3);
+    border: 1px solid var(--accent3);
+  }
+  .btn-secondary:hover { background: rgba(107,203,255,0.1); }
+  .btn-gap { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+
+  .result-box {
+    background: var(--formula-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+    display: none;
+  }
+  .result-box.show { display: block; animation: fadeIn 0.3s ease; }
+  .result-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .result-line:last-child { border-bottom: none; }
+  .result-key { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .result-val { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600; font-size: 15px; }
+  .result-verdict {
+    margin-top: 16px;
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .verdict-reject { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.4); color: var(--accent2); }
+  .verdict-fail   { background: rgba(168,255,120,0.10); border: 1px solid rgba(168,255,120,0.35); color: var(--accent4); }
+
+  /* ===== SEPARADOR ===== */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* ===== EJEMPLO RESUELTO ===== */
+  .ejemplo-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 20px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .ejemplo-box::before {
+    content: 'EJEMPLO';
+    position: absolute;
+    top: 10px; right: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+  .ejemplo-context {
+    font-style: italic;
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+  }
+  .step-block {
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    border-left: 2px solid var(--border);
+  }
+  .step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  /* ===== COLLAPSIBLE ===== */
+  .collapsible-btn {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+    display: flex; justify-content: space-between; align-items: center;
+    transition: all 0.2s;
+    margin-bottom: 4px;
+  }
+  .collapsible-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .collapsible-content {
+    display: none;
+    padding: 0 4px;
+    animation: fadeIn 0.3s ease;
+  }
+  .collapsible-content.open { display: block; }
+
+  /* ===== CHI TABLE ===== */
+  .chi-table { font-size: 12px; }
+  .chi-table th, .chi-table td { padding: 8px 12px; }
+  .chi-highlight { background: rgba(232,197,71,0.15) !important; color: var(--accent) !important; font-weight: 700; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-tag">Anderson · Estadística para Negocios y Economía · Cap. 12</div>
+  <h1>Sección <span>12.3</span> — Prueba de Bondad de Ajuste</h1>
+  <p class="hero-sub">Distribuciones de Poisson y Normal · Notebook Interactivo</p>
+  <div class="hero-pills">
+    <span class="pill pill-blue">Distribución de Poisson</span>
+    <span class="pill pill-red">Distribución Normal</span>
+    <span class="pill pill-gold">Ji-cuadrada χ²</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- NAV -->
+  <nav class="nav-bar">
+    <button class="nav-btn active" onclick="showSection('intro')">📖 Introducción</button>
+    <button class="nav-btn" onclick="showSection('poisson')">🔵 Poisson</button>
+    <button class="nav-btn" onclick="showSection('normal')">🔴 Normal</button>
+    <button class="nav-btn" onclick="showSection('comparacion')">⚖️ Comparación</button>
+    <button class="nav-btn" onclick="showSection('calculadora')">🧮 Calculadora</button>
+    <button class="nav-btn" onclick="showSection('ejercicios')">✏️ Ejercicios</button>
+    <button class="nav-btn" onclick="showSection('cheat')">📋 Resumen</button>
+  </nav>
+
+  <!-- ======================================= INTRO -->
+  <div id="sec-intro" class="section visible">
+    <h2><span class="tag-h2">Concepto Central</span>¿Qué es la Prueba de Bondad de Ajuste?</h2>
+    <p style="margin-top:16px;">La prueba de bondad de ajuste responde a una pregunta fundamental en estadística inferencial:</p>
+    <div class="card card-gold">
+      <p style="font-size:18px; font-style:italic; color: var(--accent); margin:0;">
+        ¿Es razonable suponer que mis datos siguen una distribución de probabilidad específica (Poisson o Normal)?
+      </p>
+    </div>
+    <p>Para responder esto, comparamos lo que <strong>observamos</strong> en la muestra con lo que <strong>esperaríamos</strong> si la distribución hipotética fuera verdadera. La herramienta estadística es el estadístico <strong>ji-cuadrada (χ²)</strong>.</p>
+
+    <h3>¿Por qué es útil en la práctica?</h3>
+    <div class="compare-grid">
+      <div class="compare-card">
+        <h5 style="color: var(--poisson);">Ejemplo Poisson</h5>
+        <ul>
+          <li>Llegadas de clientes a una tienda</li>
+          <li>Número de accidentes por día</li>
+          <li>Llamadas a un conmutador por minuto</li>
+          <li>Fallos en una línea de producción</li>
+        </ul>
+      </div>
+      <div class="compare-card">
+        <h5 style="color: var(--normal);">Ejemplo Normal</h5>
+        <ul>
+          <li>Puntajes de exámenes de solicitantes</li>
+          <li>Demanda semanal de un producto</li>
+          <li>Pesos de piezas manufacturadas</li>
+          <li>Tiempos de entrega de pedidos</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>La Lógica General del Procedimiento</h3>
+    <ul class="steps">
+      <li><p><strong>Plantear hipótesis:</strong> H₀ = la población sigue la distribución X. Hₐ = no la sigue.</p></li>
+      <li><p><strong>Calcular frecuencias esperadas (eᵢ):</strong> Si H₀ fuera cierta, ¿cuántas observaciones esperaríamos en cada categoría?</p></li>
+      <li><p><strong>Comparar con frecuencias observadas (fᵢ):</strong> Tomamos una muestra y contamos lo que realmente ocurre.</p></li>
+      <li><p><strong>Calcular χ²:</strong> Mide qué tan "lejos" están observadas de esperadas.</p></li>
+      <li><p><strong>Decidir:</strong> Si χ² es muy grande → las diferencias no son atribuibles al azar → rechazamos H₀.</p></li>
+    </ul>
+
+    <div class="formula-box">
+      <span class="formula-label">Estadístico de Prueba (Ec. 12.1)</span>
+      <span class="var">χ²</span> <span class="op"> = </span>
+      Σ <span class="op">(</span><span class="var">fᵢ</span> <span class="op">−</span> <span class="var">eᵢ</span><span class="op">)²</span> <span class="op">/</span> <span class="var">eᵢ</span>
+    </div>
+
+    <div class="alert alert-warn">
+      <span class="alert-icon">⚠️</span>
+      <div><strong>Regla crítica:</strong> La distribución χ² sólo es válida si <em>todas</em> las categorías tienen frecuencia esperada ≥ 5. Si alguna tiene menos, hay que combinar categorías adyacentes.</div>
+    </div>
+    <div class="alert alert-info">
+      <span class="alert-icon">ℹ️</span>
+      <div><strong>Prueba de cola superior:</strong> Esta prueba es siempre de una cola. Rechazamos H₀ sólo cuando χ² es demasiado <em>grande</em> (diferencias grandes entre fᵢ y eᵢ).</div>
+    </div>
+  </div>
+
+  <!-- ======================================= POISSON -->
+  <div id="sec-poisson" class="section">
+    <h2><span class="tag-h2">Distribución de Poisson</span>Prueba de Bondad de Ajuste <span class="badge badge-blue">Discreta</span></h2>
+
+    <p style="margin-top:16px;">La distribución de Poisson modela el número de eventos que ocurren en un intervalo fijo de tiempo o espacio, cuando los eventos son independientes y ocurren a una tasa constante μ.</p>
+
+    <h3>Función de Probabilidad de Poisson</h3>
+    <div class="formula-box">
+      <span class="formula-label">Función de Poisson (Ec. 12.4)</span>
+      <span class="var">f(x)</span> <span class="op"> = </span>
+      <span class="var">μˣ · e⁻μ</span> <span class="op"> / </span> <span class="var">x!</span>
+      <br><br>
+      <span style="font-size:12px; color: var(--text-muted);">donde μ = media (estimada con x̄ muestral), x = nº de ocurrencias</span>
+    </div>
+
+    <h3>Pasos del Procedimiento — Poisson</h3>
+    <ul class="steps">
+      <li><p><strong>Plantear hipótesis:</strong><br>H₀: la población tiene una distribución de Poisson<br>Hₐ: la población NO tiene una distribución de Poisson</p></li>
+      <li><p><strong>Tomar muestra y calcular la media μ̂:</strong><br>
+        <em>x̄ = Σ(x · fₓ) / n</em> → esto es la media muestral ponderada. Suma (valor × frecuencia) y divide entre el tamaño total.</p></li>
+      <li><p><strong>Calcular probabilidades de Poisson</strong> para cada valor de x con la μ estimada.</p></li>
+      <li><p><strong>Calcular frecuencias esperadas:</strong><br>
+        eᵢ = n · f(x) → tamaño de muestra × probabilidad de Poisson.</p></li>
+      <li><p><strong>Combinar categorías</strong> donde eᵢ &lt; 5 (combinar con adyacente). Esto reduce k.</p></li>
+      <li><p><strong>Calcular χ²</strong> = Σ (fᵢ − eᵢ)² / eᵢ</p></li>
+      <li><p><strong>Grados de libertad:</strong> gl = k − 2 (porque estimamos 1 parámetro: μ)</p></li>
+      <li><p><strong>Decidir</strong> con valor-p o valor crítico.</p></li>
+    </ul>
+
+    <div class="alert alert-warn">
+      <span class="alert-icon">🔑</span>
+      <div><strong>Grados de libertad en Poisson:</strong> gl = k − <em>p</em> − 1 = k − 1 − 1 = <strong>k − 2</strong>, porque estimamos <em>un</em> parámetro (μ) con los datos muestrales.</div>
+    </div>
+
+    <hr class="divider">
+    <h3>Ejemplo Resuelto: Dubek's Food Market</h3>
+    <div class="ejemplo-box">
+      <div class="ejemplo-context">
+        Una firma de consultoría quiere usar un modelo de colas para optimizar empleados en cajas. Este modelo solo aplica si las llegadas de clientes siguen una distribución de Poisson. Se registraron las llegadas en 128 intervalos de 5 minutos.
+      </div>
+
+      <div class="step-block">
+        <div class="step-num">Paso 1 — Hipótesis</div>
+        <p><strong>H₀:</strong> Las llegadas de clientes en intervalos de 5 min siguen una distribución de Poisson.</p>
+        <p><strong>Hₐ:</strong> Las llegadas NO siguen una distribución de Poisson. &nbsp; α = 0.05</p>
+      </div>
+
+      <div class="step-block">
+        <div class="step-num">Paso 2 — Datos observados y cálculo de μ̂</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>x (clientes)</th><th>fᵢ (intervalos)</th><th>x × fᵢ</th></tr></thead>
+            <tbody>
+              <tr><td>0</td><td>2</td><td>0</td></tr>
+              <tr><td>1</td><td>8</td><td>8</td></tr>
+              <tr><td>2</td><td>10</td><td>20</td></tr>
+              <tr><td>3</td><td>12</td><td>36</td></tr>
+              <tr><td>4</td><td>18</td><td>72</td></tr>
+              <tr><td>5</td><td>22</td><td>110</td></tr>
+              <tr><td>6</td><td>22</td><td>132</td></tr>
+              <tr><td>7</td><td>16</td><td>112</td></tr>
+              <tr><td>8</td><td>12</td><td>96</td></tr>
+              <tr><td>9</td><td>6</td><td>54</td></tr>
+              <tr class="td-total"><td><strong>Total</strong></td><td><strong>128</strong></td><td><strong>640</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:10px;"><strong>μ̂ = 640 / 128 = 5 clientes por intervalo de 5 min</strong></p>
+      </div>
+
+      <div class="step-block">
+        <div class="step-num">Paso 3–5 — Frecuencias esperadas y combinación</div>
+        <div class="alert alert-warn" style="margin-bottom:12px;">
+          <span class="alert-icon">⚠️</span>
+          <div>Las categorías 0, 1 y "9 ó más" tienen frecuencias esperadas &lt; 5. Se combinan: {0,1} y {9 ó más}.</div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Categoría (x)</th><th>fᵢ</th><th>eᵢ</th><th>fᵢ − eᵢ</th><th>(fᵢ−eᵢ)²</th><th>(fᵢ−eᵢ)²/eᵢ</th></tr></thead>
+            <tbody>
+              <tr><td>0 ó 1</td><td>10</td><td>5.17</td><td>4.83</td><td>23.28</td><td class="td-hi">4.50</td></tr>
+              <tr><td>2</td><td>10</td><td>10.78</td><td>−0.78</td><td>0.61</td><td>0.06</td></tr>
+              <tr><td>3</td><td>12</td><td>17.97</td><td>−5.97</td><td>35.62</td><td class="td-hi">1.98</td></tr>
+              <tr><td>4</td><td>18</td><td>22.46</td><td>−4.46</td><td>19.89</td><td>0.89</td></tr>
+              <tr><td>5</td><td>22</td><td>22.46</td><td>−0.46</td><td>0.21</td><td>0.01</td></tr>
+              <tr><td>6</td><td>22</td><td>18.72</td><td>3.28</td><td>10.78</td><td>0.58</td></tr>
+              <tr><td>7</td><td>16</td><td>13.37</td><td>2.63</td><td>6.92</td><td>0.52</td></tr>
+              <tr><td>8</td><td>12</td><td>8.36</td><td>3.64</td><td>13.28</td><td>1.59</td></tr>
+              <tr><td>9 ó más</td><td>6</td><td>8.72</td><td>−2.72</td><td>7.38</td><td>0.85</td></tr>
+              <tr class="td-total"><td><strong>Total</strong></td><td><strong>128</strong></td><td><strong>128.00</strong></td><td></td><td></td><td><strong>χ² = 10.96</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-num">Paso 6–8 — Decisión</div>
+        <p><strong>k = 9 categorías</strong> (después de combinar), <strong>gl = 9 − 2 = 7</strong></p>
+        <p>χ² = 10.96 → valor-p = 0.1404 (tabla χ² con 7 gl → valor está entre 0.10 y 0.25)</p>
+        <p>Como valor-p = 0.1404 <strong>&gt; α = 0.05</strong>, <strong>NO se rechaza H₀</strong>.</p>
+        <div class="result-verdict verdict-fail" style="display:block; margin-top:12px;">
+          ✅ Conclusión: No hay evidencia suficiente para rechazar que las llegadas siguen una distribución de Poisson. El modelo de colas puede aplicarse.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================= NORMAL -->
+  <div id="sec-normal" class="section">
+    <h2><span class="tag-h2">Distribución Normal</span>Prueba de Bondad de Ajuste <span class="badge badge-red">Continua</span></h2>
+
+    <p style="margin-top:16px;">Probar si una muestra proviene de una distribución normal es más complejo que Poisson, porque la distribución es continua. Necesitamos definir <strong>intervalos</strong> de valores para crear categorías discretas.</p>
+
+    <h3>¿Cómo definir los intervalos?</h3>
+    <div class="card card-normal">
+      <p><strong>Estrategia recomendada: Intervalos de igual probabilidad.</strong></p>
+      <p>Si la frecuencia esperada mínima debe ser ≥ 5, y tenemos n observaciones, usamos k = n/5 intervalos (redondeado). Con n = 50 → usamos <em>k = 10 intervalos</em>, cada uno con probabilidad 0.10.</p>
+    </div>
+
+    <h3>Pasos del Procedimiento — Normal</h3>
+    <ul class="steps">
+      <li><p><strong>Plantear hipótesis:</strong><br>H₀: la población tiene una distribución normal<br>Hₐ: la población NO tiene distribución normal</p></li>
+      <li><p><strong>Tomar muestra, calcular x̄ y s</strong> (media y desviación estándar muestral)</p></li>
+      <li><p><strong>Definir intervalos:</strong> Usar z-scores para encontrar los límites de corte con igual probabilidad (e.g., percentiles 10, 20, ..., 90 de la normal estándar).</p></li>
+      <li><p><strong>Calcular límites reales:</strong> x = x̄ + z·s para cada percentil.</p></li>
+      <li><p><strong>Contar observaciones en cada intervalo (fᵢ).</strong></p></li>
+      <li><p><strong>Frecuencias esperadas:</strong> eᵢ = n/k (iguales, por construcción).</p></li>
+      <li><p><strong>Calcular χ²</strong> = Σ (fᵢ − eᵢ)² / eᵢ</p></li>
+      <li><p><strong>Grados de libertad:</strong> gl = k − 3 (porque estimamos 2 parámetros: μ y σ)</p></li>
+    </ul>
+
+    <div class="alert alert-warn">
+      <span class="alert-icon">🔑</span>
+      <div><strong>Grados de libertad en Normal:</strong> gl = k − <em>p</em> − 1 = k − 2 − 1 = <strong>k − 3</strong>, porque estimamos <em>dos</em> parámetros (μ y σ) con los datos muestrales.</div>
+    </div>
+
+    <h3>Tabla de z-scores para intervalos de igual probabilidad</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Percentil acumulado</th><th>z</th><th>Fórmula del límite</th></tr></thead>
+        <tbody>
+          <tr><td>10%</td><td>−1.28</td><td>x̄ − 1.28·s</td></tr>
+          <tr><td>20%</td><td>−0.84</td><td>x̄ − 0.84·s</td></tr>
+          <tr><td>30%</td><td>−0.52</td><td>x̄ − 0.52·s</td></tr>
+          <tr><td>40%</td><td>−0.25</td><td>x̄ − 0.25·s</td></tr>
+          <tr><td>50%</td><td> 0.00</td><td>x̄</td></tr>
+          <tr><td>60%</td><td>+0.25</td><td>x̄ + 0.25·s</td></tr>
+          <tr><td>70%</td><td>+0.52</td><td>x̄ + 0.52·s</td></tr>
+          <tr><td>80%</td><td>+0.84</td><td>x̄ + 0.84·s</td></tr>
+          <tr><td>90%</td><td>+1.28</td><td>x̄ + 1.28·s</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="divider">
+    <h3>Ejemplo Resuelto: Chemline, Inc.</h3>
+    <div class="ejemplo-box">
+      <div class="ejemplo-context">
+        Chemline quiere saber si los puntajes de exámenes de 50 solicitantes de empleo siguen una distribución normal, para poder evaluar puntajes por percentiles. x̄ = 68.42, s = 10.41
+      </div>
+
+      <div class="step-block">
+        <div class="step-num">Paso 1 — Hipótesis</div>
+        <p><strong>H₀:</strong> Los puntajes siguen una distribución Normal con μ = 68.42 y σ = 10.41</p>
+        <p><strong>Hₐ:</strong> Los puntajes NO siguen esa distribución normal. &nbsp; α = 0.10</p>
+      </div>
+
+      <div class="step-block">
+        <div class="step-num">Paso 2–4 — Definir intervalos (k = 10, igual probabilidad)</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Intervalo</th><th>z</th><th>Límite = 68.42 + z·10.41</th></tr></thead>
+            <tbody>
+              <tr><td>Menor que L₁</td><td>−1.28</td><td>68.42 − 13.32 = <strong>55.10</strong></td></tr>
+              <tr><td>L₁ a L₂</td><td>−0.84</td><td>68.42 − 8.74 = <strong>59.68</strong></td></tr>
+              <tr><td>L₂ a L₃</td><td>−0.52</td><td>68.42 − 5.41 = <strong>63.01</strong></td></tr>
+              <tr><td>L₃ a L₄</td><td>−0.25</td><td>68.42 − 2.60 = <strong>65.82</strong></td></tr>
+              <tr><td>L₄ a L₅</td><td>0.00</td><td><strong>68.42</strong></td></tr>
+              <tr><td>L₅ a L₆</td><td>+0.25</td><td>68.42 + 2.60 = <strong>71.02</strong></td></tr>
+              <tr><td>L₆ a L₇</td><td>+0.52</td><td>68.42 + 5.41 = <strong>73.83</strong></td></tr>
+              <tr><td>L₇ a L₈</td><td>+0.84</td><td>68.42 + 8.74 = <strong>77.16</strong></td></tr>
+              <tr><td>L₈ a L₉</td><td>+1.28</td><td>68.42 + 13.32 = <strong>81.74</strong></td></tr>
+              <tr><td>Mayor que L₉</td><td>—</td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Cada intervalo tiene <em>eᵢ = 50 × 0.10 = 5</em> (frecuencia esperada).</p>
+      </div>
+
+      <div class="step-block">
+        <div class="step-num">Paso 5–6 — Frecuencias observadas vs esperadas</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Intervalo</th><th>fᵢ (obs)</th><th>eᵢ (esp)</th><th>(fᵢ−eᵢ)²/eᵢ</th></tr></thead>
+            <tbody>
+              <tr><td>&lt; 55.10</td><td>5</td><td>5</td><td>0.0</td></tr>
+              <tr><td>55.10 – 59.68</td><td>5</td><td>5</td><td>0.0</td></tr>
+              <tr><td>59.68 – 63.01</td><td>9</td><td>5</td><td class="td-hi">3.2</td></tr>
+              <tr><td>63.01 – 65.82</td><td>6</td><td>5</td><td>0.2</td></tr>
+              <tr><td>65.82 – 68.42</td><td>2</td><td>5</td><td class="td-hi">1.8</td></tr>
+              <tr><td>68.42 – 71.02</td><td>5</td><td>5</td><td>0.0</td></tr>
+              <tr><td>71.02 – 73.83</td><td>2</td><td>5</td><td class="td-hi">1.8</td></tr>
+              <tr><td>73.83 – 77.16</td><td>5</td><td>5</td><td>0.0</td></tr>
+              <tr><td>77.16 – 81.74</td><td>5</td><td>5</td><td>0.0</td></tr>
+              <tr><td>&gt; 81.74</td><td>6</td><td>5</td><td>0.2</td></tr>
+              <tr class="td-total"><td><strong>Total</strong></td><td><strong>50</strong></td><td><strong>50</strong></td><td><strong>χ² = 7.2</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-num">Paso 7–8 — Decisión</div>
+        <p><strong>k = 10</strong> intervalos, <strong>gl = 10 − 3 = 7</strong></p>
+        <p>χ² = 7.2 → valor-p = 0.4084 (tabla χ² con 7 gl → valor está más allá de 0.10)</p>
+        <p>Como valor-p = 0.4084 <strong>&gt; α = 0.10</strong>, <strong>NO se rechaza H₀</strong>.</p>
+        <div class="result-verdict verdict-fail" style="display:block; margin-top:12px;">
+          ✅ Conclusión: No hay evidencia suficiente para rechazar la normalidad. Chemline puede usar la distribución normal para interpretar puntajes por percentiles.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================= COMPARACION -->
+  <div id="sec-comparacion" class="section">
+    <h2><span class="tag-h2">Análisis Comparativo</span>Poisson vs. Normal — Diferencias clave</h2>
+
+    <div class="compare-grid" style="margin-top:20px;">
+      <div class="compare-card" style="border-top: 3px solid var(--poisson);">
+        <h5 style="color: var(--poisson); font-size:14px;">🔵 POISSON</h5>
+        <ul>
+          <li>Variable <strong>discreta</strong> (conteos)</li>
+          <li>Categorías = valores enteros (0, 1, 2, ...)</li>
+          <li>Estimamos <strong>1 parámetro</strong>: μ</li>
+          <li>gl = k − <strong>2</strong></li>
+          <li>μ̂ = promedio ponderado de la muestra</li>
+          <li>Combinar si eᵢ &lt; 5 (inicio/fin)</li>
+          <li>Prob. con tabla Poisson o fórmula</li>
+        </ul>
+      </div>
+      <div class="compare-card" style="border-top: 3px solid var(--normal);">
+        <h5 style="color: var(--normal); font-size:14px;">🔴 NORMAL</h5>
+        <ul>
+          <li>Variable <strong>continua</strong></li>
+          <li>Categorías = <strong>intervalos</strong> de valores</li>
+          <li>Estimamos <strong>2 parámetros</strong>: μ y σ</li>
+          <li>gl = k − <strong>3</strong></li>
+          <li>Usar x̄ y s muestrales</li>
+          <li>Construir k intervalos de igual probabilidad</li>
+          <li>Prob. con tabla z (normal estándar)</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Tabla de Referencia Rápida</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Elemento</th><th>Poisson</th><th>Normal</th></tr></thead>
+        <tbody>
+          <tr><td>Tipo de variable</td><td style="color:var(--poisson)">Discreta (conteos)</td><td style="color:var(--normal)">Continua</td></tr>
+          <tr><td>Parámetros estimados (p)</td><td style="color:var(--poisson)">1 (μ)</td><td style="color:var(--normal)">2 (μ, σ)</td></tr>
+          <tr><td>Grados de libertad</td><td style="color:var(--poisson)">k − 2</td><td style="color:var(--normal)">k − 3</td></tr>
+          <tr><td>Definición de categorías</td><td style="color:var(--poisson)">Valores enteros naturales</td><td style="color:var(--normal)">Intervalos de igual prob.</td></tr>
+          <tr><td>¿Cuándo combinar?</td><td style="color:var(--poisson)">eᵢ &lt; 5 en extremos</td><td style="color:var(--normal)">eᵢ &lt; 5 (aunque por diseño no pasa)</td></tr>
+          <tr><td>Estadístico χ²</td><td colspan="2" style="color:var(--accent)">Σ (fᵢ − eᵢ)² / eᵢ (igual para ambos)</td></tr>
+          <tr><td>Tipo de prueba</td><td colspan="2" style="color:var(--accent)">Cola superior (siempre)</td></tr>
+          <tr><td>Regla de rechazo (valor-p)</td><td colspan="2" style="color:var(--accent)">Rechazar H₀ si p-valor ≤ α</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Tabla χ² — Valores críticos más usados</h3>
+    <div class="tbl-wrap">
+      <table class="chi-table">
+        <thead>
+          <tr>
+            <th>gl</th>
+            <th>α = 0.10</th>
+            <th>α = 0.05</th>
+            <th>α = 0.025</th>
+            <th>α = 0.01</th>
+            <th>α = 0.005</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>2.706</td><td>3.841</td><td>5.024</td><td>6.635</td><td>7.879</td></tr>
+          <tr><td>2</td><td>4.605</td><td>5.991</td><td>7.378</td><td>9.210</td><td>10.597</td></tr>
+          <tr><td>3</td><td>6.251</td><td>7.815</td><td>9.348</td><td>11.345</td><td>12.838</td></tr>
+          <tr><td>4</td><td>7.779</td><td>9.488</td><td>11.143</td><td>13.277</td><td>14.860</td></tr>
+          <tr><td>5</td><td>9.236</td><td>11.070</td><td>12.832</td><td>15.086</td><td>16.750</td></tr>
+          <tr><td>6</td><td>10.645</td><td>12.592</td><td>14.449</td><td>16.812</td><td>18.548</td></tr>
+          <tr id="gl7row"><td>7</td><td>12.017</td><td>14.067</td><td>16.013</td><td>18.475</td><td>20.278</td></tr>
+          <tr><td>8</td><td>13.362</td><td>15.507</td><td>17.535</td><td>20.090</td><td>21.955</td></tr>
+          <tr><td>9</td><td>14.684</td><td>16.919</td><td>19.023</td><td>21.666</td><td>23.589</td></tr>
+          <tr><td>10</td><td>15.987</td><td>18.307</td><td>20.483</td><td>23.209</td><td>25.188</td></tr>
+          <tr><td>12</td><td>18.549</td><td>21.026</td><td>23.337</td><td>26.217</td><td>28.299</td></tr>
+          <tr><td>15</td><td>22.307</td><td>24.996</td><td>27.488</td><td>30.578</td><td>32.801</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px; color:var(--text-muted); margin-top:8px;">Los valores de gl = 7 son los del ejemplo de Dubek's (Poisson) y Chemline (Normal).</p>
+  </div>
+
+  <!-- ======================================= CALCULADORA -->
+  <div id="sec-calculadora" class="section">
+    <h2><span class="tag-h2">Herramienta Interactiva</span>Calculadora de Bondad de Ajuste</h2>
+
+    <div class="calc-section">
+      <h3 style="color: var(--poisson);">🔵 Calculadora — Distribución de Poisson</h3>
+      <p>Ingresa los datos observados. El proceso calcula μ̂, frecuencias esperadas, χ² y la decisión.</p>
+
+      <div>
+        <label>Datos: ingresa "valor,frecuencia" por línea (ej: 0,5 luego 1,12 ...)</label>
+        <textarea id="poisson-input" rows="8" placeholder="0,2&#10;1,8&#10;2,10&#10;3,12&#10;4,18&#10;5,22&#10;6,22&#10;7,16&#10;8,12&#10;9,6"></textarea>
+      </div>
+      <div style="margin-top:12px; max-width:200px;">
+        <label>Nivel de significancia α</label>
+        <select id="poisson-alpha">
+          <option value="0.10">0.10</option>
+          <option value="0.05" selected>0.05</option>
+          <option value="0.025">0.025</option>
+          <option value="0.01">0.01</option>
+        </select>
+      </div>
+      <div class="btn-gap">
+        <button class="btn btn-primary" onclick="calcPoisson()">Calcular χ²</button>
+        <button class="btn btn-secondary" onclick="loadPoissonExample()">Cargar Ejemplo Dubek's</button>
+      </div>
+      <div id="poisson-result" class="result-box"></div>
+    </div>
+
+    <div class="calc-section">
+      <h3 style="color: var(--normal);">🔴 Calculadora — Distribución Normal</h3>
+      <p>Ingresa la media, desviación estándar, tamaño de muestra y el número de intervalos (k). Luego ingresa las frecuencias observadas en cada intervalo.</p>
+
+      <div class="form-grid">
+        <div>
+          <label>Media muestral (x̄)</label>
+          <input type="number" id="norm-mean" placeholder="ej: 68.42" step="0.01">
+        </div>
+        <div>
+          <label>Desv. estándar (s)</label>
+          <input type="number" id="norm-sd" placeholder="ej: 10.41" step="0.01">
+        </div>
+        <div>
+          <label>Tamaño de muestra (n)</label>
+          <input type="number" id="norm-n" placeholder="ej: 50" min="10">
+        </div>
+        <div>
+          <label>Número de intervalos (k)</label>
+          <input type="number" id="norm-k" placeholder="ej: 10" min="3" max="20">
+        </div>
+      </div>
+      <div>
+        <label>Frecuencias observadas (una por línea, de menor a mayor intervalo)</label>
+        <textarea id="norm-obs" rows="6" placeholder="5&#10;5&#10;9&#10;6&#10;2&#10;5&#10;2&#10;5&#10;5&#10;6"></textarea>
+      </div>
+      <div style="margin-top:12px; max-width:200px;">
+        <label>Nivel de significancia α</label>
+        <select id="norm-alpha">
+          <option value="0.10" selected>0.10</option>
+          <option value="0.05">0.05</option>
+          <option value="0.025">0.025</option>
+          <option value="0.01">0.01</option>
+        </select>
+      </div>
+      <div class="btn-gap">
+        <button class="btn btn-primary" onclick="calcNormal()">Calcular χ²</button>
+        <button class="btn btn-secondary" onclick="loadNormalExample()">Cargar Ejemplo Chemline</button>
+      </div>
+      <div id="normal-result" class="result-box"></div>
+    </div>
+  </div>
+
+  <!-- ======================================= EJERCICIOS -->
+  <div id="sec-ejercicios" class="section">
+    <h2><span class="tag-h2">Práctica</span>Ejercicios del Libro (Sección 12.3)</h2>
+
+    <!-- Ej 20 -->
+    <div class="card card-poisson" style="margin-top:20px;">
+      <h4 style="color:var(--poisson); margin-top:0;">Ejercicio 20 — Poisson (Métodos)</h4>
+      <p>Se presenta el número de ocurrencias por periodo y su frecuencia observada. Use α = 0.05 para determinar si estos datos se ajustan a una distribución de Poisson.</p>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>Ocurrencias</th><th>Frec. Obs.</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>39</td></tr>
+          <tr><td>1</td><td>30</td></tr>
+          <tr><td>2</td><td>30</td></tr>
+          <tr><td>3</td><td>18</td></tr>
+          <tr><td>4</td><td>3</td></tr>
+        </tbody></table>
+      </div>
+      <button class="collapsible-btn" onclick="toggleCollapse('sol20')">Ver solución guiada ▾</button>
+      <div id="sol20" class="collapsible-content">
+        <div class="step-block">
+          <div class="step-num">Paso 1 — μ̂</div>
+          <p>n = 39+30+30+18+3 = 120<br>
+          Σ(x·f) = 0(39)+1(30)+2(30)+3(18)+4(3) = 0+30+60+54+12 = 156<br>
+          <strong>μ̂ = 156/120 = 1.3</strong></p>
+        </div>
+        <div class="step-block">
+          <div class="step-num">Paso 2 — Probabilidades de Poisson con μ = 1.3</div>
+          <p>f(0)=e⁻¹·³ = 0.2725, f(1)=1.3·e⁻¹·³ = 0.3542, f(2)=0.2303, f(3)=0.0998, f(4+)=0.0432</p>
+        </div>
+        <div class="step-block">
+          <div class="step-num">Paso 3 — Frecuencias esperadas y combinación</div>
+          <p>e₀=32.70, e₁=42.50, e₂=27.64, e₃=11.98, e₄₊=5.18<br>
+          Todas ≥ 5 → no hay que combinar. k = 5.</p>
+        </div>
+        <div class="step-block">
+          <div class="step-num">Paso 4 — χ²</div>
+          <p>χ² = (39−32.70)²/32.70 + (30−42.50)²/42.50 + (30−27.64)²/27.64 + (18−11.98)²/11.98 + (3−5.18)²/5.18<br>
+          ≈ 1.21 + 3.68 + 0.20 + 3.02 + 0.92 = <strong>9.03</strong></p>
+        </div>
+        <div class="step-block">
+          <div class="step-num">Paso 5 — Decisión</div>
+          <p>gl = k − 2 = 5 − 2 = 3<br>
+          χ²₀.₀₅ con 3 gl = 7.815<br>
+          χ² = 9.03 > 7.815 → <strong>Rechazar H₀</strong></p>
+          <div class="result-verdict verdict-reject">❌ Los datos NO se ajustan a una distribución de Poisson (p-valor ≈ 0.029 &lt; 0.05)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ej 22 -->
+    <div class="card card-poisson">
+      <h4 style="color:var(--poisson); margin-top:0;">Ejercicio 22 — Accidentes (Aplicación)</h4>
+      <p>Número de accidentes automovilísticos por día en una ciudad. Muestra de 80 días. Use α = 0.05 para probar si sigue distribución de Poisson.</p>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>Accidentes</th><th>Días</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>34</td></tr>
+          <tr><td>1</td><td>25</td></tr>
+          <tr><td>2</td><td>11</td></tr>
+          <tr><td>3</td><td>7</td></tr>
+          <tr><td>4</td><td>3</td></tr>
+        </tbody></table>
+      </div>
+      <button class="collapsible-btn" onclick="toggleCollapse('sol22')">Ver solución guiada ▾</button>
+      <div id="sol22" class="collapsible-content">
+        <div class="step-block">
+          <div class="step-num">Paso 1 — μ̂</div>
+          <p>n = 80, Σ(x·f) = 0(34)+1(25)+2(11)+3(7)+4(3) = 0+25+22+21+12 = 80<br>
+          <strong>μ̂ = 80/80 = 1.0</strong></p>
+        </div>
+        <div class="step-block">
+          <div class="step-num">Paso 2 — Prob. Poisson con μ = 1.0</div>
+          <p>f(0)=0.3679, f(1)=0.3679, f(2)=0.1839, f(3)=0.0613, f(4+)=1−Σ=0.0190</p>
+        </div>
+        <div class="step-block">
+          <div class="step-num">Paso 3 — Frecuencias esperadas</div>
+          <p>e₀=29.43, e₁=29.43, e₂=14.71, e₃=4.90, e₄₊=1.52<br>
+          ⚠️ e₃ y e₄₊ &lt; 5 → combinar en "3 ó más": e₃₊ = 4.90+1.52 = 6.42, f₃₊ = 7+3 = 10</p>
+        </div>
+        <div class="step-block">
+          <div class="step-num">Paso 4 — χ² (k=4 después de combinar)</div>
+          <p>χ² = (34−29.43)²/29.43 + (25−29.43)²/29.43 + (11−14.71)²/14.71 + (10−6.42)²/6.42<br>
+          ≈ 0.71 + 0.67 + 0.93 + 1.99 = <strong>4.30</strong></p>
+        </div>
+        <div class="step-block">
+          <div class="step-num">Paso 5 — Decisión</div>
+          <p>gl = 4 − 2 = 2, χ²₀.₀₅ con 2 gl = 5.991<br>
+          χ² = 4.30 &lt; 5.991 → <strong>No rechazar H₀</strong></p>
+          <div class="result-verdict verdict-fail">✅ Los datos son consistentes con una distribución de Poisson (p-valor ≈ 0.117 &gt; 0.05)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ej 21 -->
+    <div class="card card-normal">
+      <h4 style="color:var(--normal); margin-top:0;">Ejercicio 21 — Normal (Métodos)</h4>
+      <p>Se cree que los siguientes datos provienen de una distribución normal. Use α = 0.05. (n=30 datos)</p>
+      <p style="font-family: 'JetBrains Mono', monospace; font-size:13px; background:var(--formula-bg); padding:10px; border-radius:6px;">
+        17 23 22 24 19 23 18 22 20 13 11 21 18 20 21<br>
+        21 18 15 24 23 23 29 27 26 30 28 33 23 29 28
+      </p>
+      <button class="collapsible-btn" onclick="toggleCollapse('sol21')">Ver solución guiada ▾</button>
+      <div id="sol21" class="collapsible-content">
+        <div class="step-block">
+          <div class="step-num">Paso 1 — Estadísticos muestrales</div>
+          <p>n = 30, x̄ ≈ 22.67, s ≈ 5.15<br>(usar calculadora para verificar)</p>
+        </div>
+        <div class="step-block">
+          <div class="step-num">Paso 2 — Intervalos (k = 6, cada uno con prob. 1/6 ≈ 0.167)</div>
+          <p>Con 30 observaciones y eᵢ = 5 mínimo → k = 6 intervalos. Percentiles: 16.7%, 33.3%, 50%, 66.7%, 83.3%</p>
+          <p>z: −0.97, −0.43, 0.00, +0.43, +0.97</p>
+          <p>Límites: 22.67−0.97(5.15)=17.67, 22.67−0.43(5.15)=20.46, 22.67, 24.88, 27.67</p>
+        </div>
+        <div class="step-block">
+          <div class="step-num">Pasos siguientes</div>
+          <p>Contar observaciones en cada intervalo → calcular χ² con gl = k−3 = 6−3 = 3.<br>
+          Comparar con χ²₀.₀₅(3) = 7.815. Si χ² &lt; 7.815, no rechazar H₀.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ej 24 -->
+    <div class="card card-normal">
+      <h4 style="color:var(--normal); margin-top:0;">Ejercicio 24 — Demanda semanal (Aplicación)</h4>
+      <p>Demanda semanal de un producto. x̄ = 24.5, s = 3. n = 30 datos. Use α = 0.10.</p>
+      <button class="collapsible-btn" onclick="toggleCollapse('sol24')">Ver orientación ▾</button>
+      <div id="sol24" class="collapsible-content">
+        <div class="step-block">
+          <div class="step-num">Orientación</div>
+          <p>Ya te dan x̄ = 24.5 y s = 3. Con n = 30 → usa k = 6 intervalos de igual probabilidad (eᵢ = 5).</p>
+          <p>Percentiles z: −0.97, −0.43, 0.00, +0.43, +0.97</p>
+          <p>Límites: 24.5 + z·3 → 21.59, 23.21, 24.5, 25.79, 27.41</p>
+          <p>Cuenta los 30 datos en cada intervalo → calcula χ² → gl = 6−3 = 3 → compara con χ²₀.₁₀(3) = 6.251</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================= CHEAT SHEET -->
+  <div id="sec-cheat" class="section">
+    <h2><span class="tag-h2">Referencia Rápida</span>Guía de Resolución — Hoja de Ruta</h2>
+
+    <div class="card card-gold" style="margin-top:20px;">
+      <h4 style="margin-top:0; color: var(--accent);">PREGUNTA CLAVE ANTES DE EMPEZAR</h4>
+      <p style="font-size:16px;">¿Cuál distribución quiero probar?</p>
+      <div class="compare-grid">
+        <div style="padding:14px; background:rgba(107,203,255,0.07); border-radius:8px; border:1px solid rgba(107,203,255,0.2);">
+          <p style="color:var(--poisson); font-weight:600; margin-bottom:6px;">→ POISSON si...</p>
+          <p style="font-size:14px; margin:0;">Los datos son conteos de eventos (llegadas, accidentes, llamadas, fallas) por intervalo de tiempo/espacio.</p>
+        </div>
+        <div style="padding:14px; background:rgba(255,107,107,0.07); border-radius:8px; border:1px solid rgba(255,107,107,0.2);">
+          <p style="color:var(--normal); font-weight:600; margin-bottom:6px;">→ NORMAL si...</p>
+          <p style="font-size:14px; margin:0;">Los datos son mediciones continuas (puntajes, pesos, demanda, tiempos, precios).</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Algoritmo Universal de Resolución</h3>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="background:var(--surface2); padding:16px 20px; border-bottom:1px solid var(--border);">
+        <h4 style="margin:0; color:var(--accent);">PASO 1 — HIPÓTESIS (siempre igual)</h4>
+      </div>
+      <div style="padding:16px 20px;">
+        <p><strong>H₀:</strong> la población tiene una distribución [Poisson/Normal]</p>
+        <p><strong>Hₐ:</strong> la población NO tiene una distribución [Poisson/Normal]</p>
+        <p>Fijar α (normalmente 0.05 o 0.10)</p>
+      </div>
+    </div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="background:var(--surface2); padding:16px 20px; border-bottom:1px solid var(--border);">
+        <h4 style="margin:0; color:var(--poisson);">PASO 2 — ESTIMAR PARÁMETROS</h4>
+      </div>
+      <div style="padding:16px 20px;">
+        <div class="compare-grid">
+          <div>
+            <p style="color:var(--poisson); font-weight:600;">Poisson:</p>
+            <p>μ̂ = Σ(xᵢ · fᵢ) / n<br><em>(suma productos valor×frec, divide entre n)</em></p>
+          </div>
+          <div>
+            <p style="color:var(--normal); font-weight:600;">Normal:</p>
+            <p>x̄ = Σxᵢ/n y s = √[Σ(xᵢ−x̄)²/(n−1)]</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="background:var(--surface2); padding:16px 20px; border-bottom:1px solid var(--border);">
+        <h4 style="margin:0; color:var(--accent3);">PASO 3 — FRECUENCIAS ESPERADAS</h4>
+      </div>
+      <div style="padding:16px 20px;">
+        <div class="compare-grid">
+          <div>
+            <p style="color:var(--poisson); font-weight:600;">Poisson:</p>
+            <p>eᵢ = n · f(x) = n · [μˣ·e⁻μ / x!]<br>Si eᵢ &lt; 5 → combinar con adyacente</p>
+          </div>
+          <div>
+            <p style="color:var(--normal); font-weight:600;">Normal:</p>
+            <p>Definir k intervalos con igual P = 1/k<br>eᵢ = n/k para todos<br>(si n/k ≥ 5, no hay problemas)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="background:var(--surface2); padding:16px 20px; border-bottom:1px solid var(--border);">
+        <h4 style="margin:0; color:var(--accent4);">PASO 4 — CALCULAR χ²</h4>
+      </div>
+      <div style="padding:16px 20px;">
+        <div class="formula-box" style="margin:0; text-align:left; padding:14px 18px;">
+          χ² = Σ (fᵢ − eᵢ)² / eᵢ
+        </div>
+        <p style="margin-top:12px; margin-bottom:0;">Hacer una tabla con columnas: categoría | fᵢ | eᵢ | (fᵢ−eᵢ) | (fᵢ−eᵢ)² | (fᵢ−eᵢ)²/eᵢ → sumar última columna.</p>
+      </div>
+    </div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="background:var(--surface2); padding:16px 20px; border-bottom:1px solid var(--border);">
+        <h4 style="margin:0; color:var(--accent2);">PASO 5 — GRADOS DE LIBERTAD</h4>
+      </div>
+      <div style="padding:16px 20px;">
+        <div class="compare-grid">
+          <div style="background:rgba(107,203,255,0.07); padding:12px; border-radius:8px;">
+            <p style="color:var(--poisson); font-weight:700; font-size:20px; margin-bottom:4px;">gl = k − 2</p>
+            <p style="font-size:13px; margin:0;">Poisson (estimamos μ)</p>
+          </div>
+          <div style="background:rgba(255,107,107,0.07); padding:12px; border-radius:8px;">
+            <p style="color:var(--normal); font-weight:700; font-size:20px; margin-bottom:4px;">gl = k − 3</p>
+            <p style="font-size:13px; margin:0;">Normal (estimamos μ y σ)</p>
+          </div>
+        </div>
+        <p style="margin-top:12px; margin-bottom:0; font-size:14px;">Donde k = número de categorías <em>después</em> de combinar.</p>
+      </div>
+    </div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="background:var(--surface2); padding:16px 20px; border-bottom:1px solid var(--border);">
+        <h4 style="margin:0; color:var(--accent);">PASO 6 — DECISIÓN</h4>
+      </div>
+      <div style="padding:16px 20px;">
+        <p><strong>Método valor crítico:</strong> Busca χ²α en tabla con los gl calculados.<br>
+        Rechazar H₀ si χ²<sub>calc</sub> ≥ χ²<sub>α,gl</sub></p>
+        <p><strong>Método valor-p:</strong> Busca el área en cola superior para χ²<sub>calc</sub> con gl.<br>
+        Rechazar H₀ si valor-p ≤ α</p>
+        <div class="alert alert-info" style="margin-top:12px; margin-bottom:0;">
+          <span class="alert-icon">💡</span>
+          <div><strong>Truco para la tabla:</strong> Si χ²<sub>calc</sub> está <em>a la derecha</em> del valor crítico para α en la tabla → rechazar. Si está <em>a la izquierda</em> → no rechazar.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Errores Comunes y Cómo Evitarlos</h3>
+    <div class="card card-gold">
+      <ul style="list-style:none;">
+        <li style="margin-bottom:14px; padding-left:20px; position:relative;"><span style="position:absolute;left:0;color:var(--accent2);">✗</span> <strong>No combinar categorías con eᵢ &lt; 5.</strong> El χ² no es válido sin esto. Siempre revisar antes de calcular.</li>
+        <li style="margin-bottom:14px; padding-left:20px; position:relative;"><span style="position:absolute;left:0;color:var(--accent2);">✗</span> <strong>Usar gl = k−1.</strong> Ese es para poblaciones multinomiales (sección 12.1). Aquí los gl dependen de cuántos parámetros se estiman.</li>
+        <li style="margin-bottom:14px; padding-left:20px; position:relative;"><span style="position:absolute;left:0;color:var(--accent2);">✗</span> <strong>Olvidar que es prueba de cola superior.</strong> El rechazo siempre ocurre por la derecha de la distribución χ².</li>
+        <li style="margin-bottom:14px; padding-left:20px; position:relative;"><span style="position:absolute;left:0;color:var(--accent2);">✗</span> <strong>En Normal: usar intervalos de diferente ancho.</strong> Lo más práctico y seguro es usar k intervalos de igual probabilidad.</li>
+        <li style="padding-left:20px; position:relative;"><span style="position:absolute;left:0;color:var(--accent2);">✗</span> <strong>Confundir k inicial con k final.</strong> Los gl se calculan con k después de combinar categorías.</li>
+      </ul>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('visible'));
+  document.getElementById('sec-' + name).classList.add('visible');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function toggleCollapse(id) {
+  const el = document.getElementById(id);
+  const btn = el.previousElementSibling;
+  if (el.classList.contains('open')) {
+    el.classList.remove('open');
+    btn.textContent = btn.textContent.replace('▴','▾');
+  } else {
+    el.classList.add('open');
+    btn.textContent = btn.textContent.replace('▾','▴');
+  }
+}
+
+// ============ POISSON CALCULATOR ============
+function loadPoissonExample() {
+  document.getElementById('poisson-input').value = "0,2\n1,8\n2,10\n3,12\n4,18\n5,22\n6,22\n7,16\n8,12\n9,6";
+  document.getElementById('poisson-alpha').value = "0.05";
+}
+
+function factorial(n) {
+  if (n <= 1) return 1;
+  return n * factorial(n - 1);
+}
+function poissonProb(mu, x) {
+  return Math.pow(mu, x) * Math.exp(-mu) / factorial(x);
+}
+function chiSquareCritical(alpha, df) {
+  // Approximate using Wilson-Hilferty transformation
+  const p = 1 - alpha;
+  const z = normalInv(p);
+  const val = df * Math.pow(1 - (2/(9*df)) + z * Math.sqrt(2/(9*df)), 3);
+  return Math.max(0, val);
+}
+function normalInv(p) {
+  // Beasley-Springer-Moro approximation
+  const a = [2.515517,0.802853,0.010328];
+  const b = [1.432788,0.189269,0.001308];
+  if (p <= 0 || p >= 1) return 0;
+  const q = p < 0.5 ? p : 1-p;
+  const t = Math.sqrt(-2*Math.log(q));
+  let num = a[0] + t*(a[1] + t*a[2]);
+  let den = 1 + t*(b[0] + t*(b[1] + t*b[2]));
+  let x = t - num/den;
+  return p < 0.5 ? -x : x;
+}
+
+function calcPoisson() {
+  const lines = document.getElementById('poisson-input').value.trim().split('\n');
+  const alpha = parseFloat(document.getElementById('poisson-alpha').value);
+  let data = [];
+  try {
+    for (let l of lines) {
+      const parts = l.split(',');
+      if (parts.length !== 2) throw new Error('Formato inválido');
+      data.push({x: parseInt(parts[0].trim()), f: parseInt(parts[1].trim())});
+    }
+  } catch(e) {
+    alert('Error en el formato. Usa: valor,frecuencia en cada línea.');
+    return;
+  }
+  
+  const n = data.reduce((s,d) => s+d.f, 0);
+  const sumXF = data.reduce((s,d) => s+d.x*d.f, 0);
+  const mu = sumXF / n;
+  
+  // Compute Poisson probs
+  let maxX = data[data.length-1].x;
+  let cats = [];
+  let cumProb = 0;
+  for (let i = 0; i <= maxX-1; i++) {
+    const p = poissonProb(mu, i);
+    cumProb += p;
+    const obs = data.find(d => d.x === i)?.f || 0;
+    cats.push({label: String(i), prob: p, f: obs, e: n*p});
+  }
+  // Last category: maxX or more
+  const pLast = 1 - cumProb;
+  const obsLast = data.filter(d => d.x >= maxX).reduce((s,d) => s+d.f, 0);
+  cats.push({label: maxX + ' ó más', prob: pLast, f: obsLast, e: n*pLast});
+  
+  // Combine categories with e < 5
+  let combined = [];
+  let buffer = null;
+  for (let c of cats) {
+    if (buffer) {
+      buffer.label += '/' + c.label;
+      buffer.f += c.f;
+      buffer.e += c.e;
+      if (buffer.e >= 5) { combined.push(buffer); buffer = null; }
+    } else if (c.e < 5) {
+      buffer = {...c};
+    } else {
+      combined.push(c);
+    }
+  }
+  if (buffer) {
+    if (combined.length > 0) {
+      const last = combined[combined.length-1];
+      last.label += '/'+buffer.label;
+      last.f += buffer.f;
+      last.e += buffer.e;
+    } else {
+      combined.push(buffer);
+    }
+  }
+  
+  // Chi-squared
+  let chi2 = 0;
+  for (let c of combined) chi2 += Math.pow(c.f - c.e, 2) / c.e;
+  const k = combined.length;
+  const df = k - 2;
+  const crit = chiSquareCritical(alpha, df);
+  
+  // Approximate p-value
+  const pval = 1 - chi2CDF(chi2, df);
+  
+  let tableRows = combined.map(c =>
+    `<tr><td>${c.label}</td><td>${c.f}</td><td>${c.e.toFixed(2)}</td><td>${(c.f-c.e).toFixed(2)}</td><td>${((c.f-c.e)**2/c.e).toFixed(3)}</td></tr>`
+  ).join('');
+  
+  const reject = chi2 >= crit;
+  const resultHtml = `
+    <div class="result-line"><span class="result-key">n (tamaño de muestra)</span><span class="result-val">${n}</span></div>
+    <div class="result-line"><span class="result-key">μ̂ estimada</span><span class="result-val">${mu.toFixed(4)}</span></div>
+    <div class="result-line"><span class="result-key">k (categorías finales)</span><span class="result-val">${k}</span></div>
+    <div class="result-line"><span class="result-key">Grados de libertad (k−2)</span><span class="result-val">${df}</span></div>
+    <div class="result-line"><span class="result-key">χ² calculado</span><span class="result-val">${chi2.toFixed(4)}</span></div>
+    <div class="result-line"><span class="result-key">χ²α (valor crítico, α=${alpha})</span><span class="result-val">${crit.toFixed(3)}</span></div>
+    <div class="result-line"><span class="result-key">p-valor (aprox.)</span><span class="result-val">${pval.toFixed(4)}</span></div>
+    <div class="tbl-wrap" style="margin-top:14px;">
+      <table>
+        <thead><tr><th>Categoría</th><th>fᵢ</th><th>eᵢ</th><th>fᵢ−eᵢ</th><th>(fᵢ−eᵢ)²/eᵢ</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div class="result-verdict ${reject ? 'verdict-reject':'verdict-fail'}">
+      ${reject ? '❌ RECHAZAR H₀: Los datos NO se ajustan a una distribución de Poisson (χ²='+chi2.toFixed(2)+' ≥ χ²α='+crit.toFixed(3)+')' :
+                 '✅ NO RECHAZAR H₀: Los datos son consistentes con una distribución de Poisson (χ²='+chi2.toFixed(2)+' < χ²α='+crit.toFixed(3)+')'}
+    </div>`;
+  
+  const box = document.getElementById('poisson-result');
+  box.innerHTML = resultHtml;
+  box.classList.add('show');
+}
+
+// ============ NORMAL CALCULATOR ============
+function loadNormalExample() {
+  document.getElementById('norm-mean').value = '68.42';
+  document.getElementById('norm-sd').value = '10.41';
+  document.getElementById('norm-n').value = '50';
+  document.getElementById('norm-k').value = '10';
+  document.getElementById('norm-obs').value = '5\n5\n9\n6\n2\n5\n2\n5\n5\n6';
+  document.getElementById('norm-alpha').value = '0.10';
+}
+
+function calcNormal() {
+  const mean = parseFloat(document.getElementById('norm-mean').value);
+  const sd = parseFloat(document.getElementById('norm-sd').value);
+  const n = parseInt(document.getElementById('norm-n').value);
+  const k = parseInt(document.getElementById('norm-k').value);
+  const alpha = parseFloat(document.getElementById('norm-alpha').value);
+  const obsLines = document.getElementById('norm-obs').value.trim().split('\n');
+  
+  if ([mean,sd,n,k].some(isNaN)) { alert('Completa todos los campos numéricos.'); return; }
+  if (obsLines.length !== k) { alert(`Necesitas exactamente ${k} frecuencias observadas (una por línea).`); return; }
+  
+  const fi = obsLines.map(l => parseInt(l.trim()));
+  const ei = n / k;
+  
+  if (ei < 5) { alert(`Advertencia: eᵢ = ${ei.toFixed(2)} < 5. Considera reducir k.`); }
+  
+  // Compute limits
+  const probs = [];
+  for (let i = 1; i < k; i++) probs.push(i/k);
+  
+  const limits = probs.map(p => {
+    const z = normalInv(p);
+    return (mean + z*sd).toFixed(2);
+  });
+  
+  // Chi-squared
+  let chi2 = 0;
+  fi.forEach(f => chi2 += Math.pow(f - ei, 2) / ei);
+  
+  const df = k - 3;
+  const crit = chiSquareCritical(alpha, df);
+  const pval = 1 - chi2CDF(chi2, df);
+  
+  let tableRows = '';
+  const labelsArr = ['< ' + limits[0]];
+  for (let i = 0; i < limits.length-1; i++) labelsArr.push(limits[i]+' – '+limits[i+1]);
+  labelsArr.push('> ' + limits[limits.length-1]);
+  
+  labelsArr.forEach((lbl, i) => {
+    const diff = fi[i] - ei;
+    tableRows += `<tr><td>${lbl}</td><td>${fi[i]}</td><td>${ei.toFixed(1)}</td><td>${diff.toFixed(1)}</td><td>${(diff*diff/ei).toFixed(3)}</td></tr>`;
+  });
+  
+  const reject = chi2 >= crit;
+  const resultHtml = `
+    <div class="result-line"><span class="result-key">x̄</span><span class="result-val">${mean}</span></div>
+    <div class="result-line"><span class="result-key">s</span><span class="result-val">${sd}</span></div>
+    <div class="result-line"><span class="result-key">n</span><span class="result-val">${n}</span></div>
+    <div class="result-line"><span class="result-key">k (intervalos)</span><span class="result-val">${k}</span></div>
+    <div class="result-line"><span class="result-key">eᵢ (esperada por intervalo)</span><span class="result-val">${ei.toFixed(2)}</span></div>
+    <div class="result-line"><span class="result-key">Grados de libertad (k−3)</span><span class="result-val">${df}</span></div>
+    <div class="result-line"><span class="result-key">χ² calculado</span><span class="result-val">${chi2.toFixed(4)}</span></div>
+    <div class="result-line"><span class="result-key">χ²α (valor crítico, α=${alpha})</span><span class="result-val">${crit.toFixed(3)}</span></div>
+    <div class="result-line"><span class="result-key">p-valor (aprox.)</span><span class="result-val">${pval.toFixed(4)}</span></div>
+    <div class="result-line"><span class="result-key">Límites de intervalos</span><span class="result-val" style="font-size:12px;">${limits.join(' | ')}</span></div>
+    <div class="tbl-wrap" style="margin-top:14px;">
+      <table>
+        <thead><tr><th>Intervalo</th><th>fᵢ</th><th>eᵢ</th><th>fᵢ−eᵢ</th><th>(fᵢ−eᵢ)²/eᵢ</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div class="result-verdict ${reject ? 'verdict-reject':'verdict-fail'}">
+      ${reject ? '❌ RECHAZAR H₀: Los datos NO siguen una distribución normal (χ²='+chi2.toFixed(2)+' ≥ χ²α='+crit.toFixed(3)+')' :
+                 '✅ NO RECHAZAR H₀: Los datos son consistentes con una distribución normal (χ²='+chi2.toFixed(2)+' < χ²α='+crit.toFixed(3)+')'}
+    </div>`;
+  
+  const box = document.getElementById('normal-result');
+  box.innerHTML = resultHtml;
+  box.classList.add('show');
+}
+
+// ============ CHI-SQUARED CDF (regularized gamma) ============
+function chi2CDF(x, df) {
+  if (x <= 0) return 0;
+  return regularizedGamma(df/2, x/2);
+}
+function regularizedGamma(a, x) {
+  if (x < 0) return 0;
+  if (x === 0) return 0;
+  let sum = 1/a, term = 1/a;
+  for (let i = 1; i < 200; i++) {
+    term *= x/(a+i);
+    sum += term;
+    if (Math.abs(term) < 1e-10) break;
+  }
+  return Math.min(1, sum * Math.exp(-x + a*Math.log(x) - lgamma(a)));
+}
+function lgamma(z) {
+  const g = 7;
+  const c = [0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI*z)) - lgamma(1-z);
+  z -= 1;
+  let x = c[0];
+  for (let i = 1; i < g+2; i++) x += c[i]/(z+i);
+  const t = z + g + 0.5;
+  return 0.5*Math.log(2*Math.PI) + (z+0.5)*Math.log(t) - t + Math.log(x);
+}
+</script>
+</body>
+</html>
